@@ -60,7 +60,7 @@ fun SplashScreen(navController: NavController) {
             verticalArrangement = Arrangement.Center
         ) {
             Image(
-                painter = painterResource(id = R.drawable.splash),
+                painter = painterResource(id = R.drawable.splashhh),
                 contentDescription = "Splash Logo",
                 modifier = Modifier.size(200.dp)
             )
