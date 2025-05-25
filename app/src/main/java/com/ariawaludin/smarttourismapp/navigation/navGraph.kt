@@ -24,38 +24,37 @@ fun NavGraph(navController: NavHostController) {
         composable("SplashScreen") {
             SplashScreen(navController = navController)
         }
+
         composable("auth") {
-            LoginScreen(navController = navController) // Ganti dengan login screen
+            LoginScreen(navController = navController)
         }
+
         composable("home") {
             HomeScreen(
                 navController = navController,
-                onMenuClick = {navController.navigate("explore")},
+                onMenuClick = { navController.navigate("explore") },
                 onNavigateToSettings = { navController.navigate("settings") }
             )
         }
 
-
         composable("settings") {
             SettingsScreen(
-                onBackClick = {navController.popBackStack()},
-                onNavigateToEditProfile = { navController.navigate("edit_profile") },
+                onBackClick = { navController.popBackStack() },
+                onNavigateToEditProfile = { navController.navigate("edit_profile") }
             )
         }
 
+        composable("explore") {
+            MapsScreen(navController)
+        }
 
-
-            composable("explore") {
-                ExploreScreen(
-                    onBackClick = { navController.popBackStack() },
-                    navigateToDestinationDetails = { destinationId ->
-                        navController.navigate("destination/$destinationId")
-                    }
-                )
-            }
-
-
-
+//        composable("dining") {
+//            DiningScreen(navController)
+//        }
+//
+//        composable("hotels") {
+//            HotelScreen(navController)
+//        }
 
         composable("profile") {
             ProfileScreen(
@@ -66,26 +65,12 @@ fun NavGraph(navController: NavHostController) {
                 onNavigateToReviews = { navController.navigate("reviews") },
                 onNavigateToHelp = { navController.navigate("help") },
                 onLogout = {
-                    // contoh logout action
                     navController.navigate("login") {
                         popUpTo("home") { inclusive = true }
                     }
                 }
             )
         }
-
-
-        composable("maps") {
-            MapsScreen (
-                onBackClick = { navController.popBackStack() },
-                navigateToDestinationDetails = { destinationId ->
-                    navController.navigate("destination/$destinationId")
-                }
-            )
-        }
-
-
-
 
         composable("camera") {
             CameraScreen(onBack = { navController.popBackStack() })
@@ -99,7 +84,6 @@ fun NavGraph(navController: NavHostController) {
             ListWisataScreen(navController = navController)
         }
 
-        // Tambahkan composable lainnya di sini
-        // composable("detail/{placeName}") { backStackEntry -> ... }
+        // Tambahkan rute lainnya sesuai kebutuhan
     }
 }

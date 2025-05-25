@@ -1,13 +1,12 @@
 package com.ariawaludin.smarttourismapp.features.explore
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import android.content.Context
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -15,281 +14,182 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
+import androidx.navigation.NavController
 import com.ariawaludin.smarttourismapp.R
+import com.ariawaludin.smarttourismapp.model.MapDestination
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.*
 
-@OptIn(ExperimentalMaterial3Api::class)
+fun getBitmapDescriptor(context: Context, @DrawableRes resId: Int): BitmapDescriptor {
+    val drawable: Drawable = ContextCompat.getDrawable(context, resId)!!
+    if (drawable is BitmapDrawable) {
+        return BitmapDescriptorFactory.fromBitmap(drawable.bitmap)
+    }
+    val bitmap = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
+    val canvas = Canvas(bitmap)
+    drawable.setBounds(0, 0, canvas.width, canvas.height)
+    drawable.draw(canvas)
+    return BitmapDescriptorFactory.fromBitmap(bitmap)
+}
+
 @Composable
-fun ExploreScreen(
-    onBackClick: () -> Unit,
-    navigateToDestinationDetails: (String) -> Unit
-) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Explore Destinations") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
-                )
-            )
+fun ExploreScreen(navController: NavController) {
+    val context = LocalContext.current
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(LatLng(-6.1754, 106.8272), 10f)
+    }
+
+    val mapDestinations = remember {
+        listOf(
+            MapDestination("Hotel Indonesia", "Jakarta", LatLng(-6.1939, 106.8208), "hotel"),
+            MapDestination("Plaza Indonesia", "Jakarta", LatLng(-6.1936, 106.8205), "restaurant"),
+            MapDestination("Monas", "Jakarta", LatLng(-6.1754, 106.8272), "attraction"),
+            MapDestination("Ancol", "Jakarta", LatLng(-6.1256, 106.8364), "activity"),
+            MapDestination("Dufan", "Jakarta", LatLng(-6.1259, 106.8365), "activity"),
+            MapDestination("Sate Senayan", "Jakarta", LatLng(-6.2246, 106.8025), "restaurant"),
+            MapDestination("Hotel Mulia", "Jakarta", LatLng(-6.2185, 106.8017), "hotel"),
+        )
+    }
+
+    var selectedDestination by remember { mutableStateOf<MapDestination?>(null) }
+    var isInfoCardVisible by remember { mutableStateOf(false) }
+
+    var activeFilters by remember { mutableStateOf(setOf<String>()) }
+    fun toggleFilter(type: String) {
+        activeFilters = if (activeFilters.contains(type)) {
+            activeFilters - type
+        } else {
+            activeFilters + type
         }
-    ) { padding ->
-        Column(
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp)
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Search bar
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp)
-                    .shadow(
-                        elevation = 4.dp,
-                        shape = RoundedCornerShape(16.dp)
-                    ),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                ),
-                shape = RoundedCornerShape(16.dp)
+            FilterButton(Icons.Default.Hotel, "Hotels", "hotel", activeFilters.contains("hotel"), ::toggleFilter, Modifier.weight(1f))
+            FilterButton(Icons.Default.Restaurant, "Dining", "restaurant", activeFilters.contains("restaurant"), ::toggleFilter, Modifier.weight(1f))
+            FilterButton(Icons.Default.Place, "Attractions", "attraction", activeFilters.contains("attraction"), ::toggleFilter, Modifier.weight(1f))
+            FilterButton(Icons.Default.SportsSoccer, "Activities", "activity", activeFilters.contains("activity"), ::toggleFilter, Modifier.weight(1f))
+        }
+
+        Box(modifier = Modifier.fillMaxSize()) {
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraPositionState
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = null,
-                        modifier = Modifier.padding(8.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-
-                    Text(
-                        "Search for destinations...",
-                        color = Color.Gray,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
-                    )
-                }
-            }
-
-            // Filter chips section
-            Text(
-                "Categories",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            val categories = listOf("All", "Beaches", "Mountains", "Cultural", "City", "Adventure")
-            var selectedCategory by remember { mutableStateOf("All") }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-                    .horizontalScroll(androidx.compose.foundation.rememberScrollState())
-            ) {
-                categories.forEach { category ->
-                    FilterChip(
-                        selected = selectedCategory == category,
-                        onClick = { selectedCategory = category },
-                        label = { Text(category) },
-                        modifier = Modifier.padding(end = 8.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = Color.White
+                mapDestinations
+                    .filter { activeFilters.isEmpty() || activeFilters.contains(it.type) }
+                    .forEach { destination ->
+                        Marker(
+                            state = MarkerState(position = destination.position),
+                            title = destination.name,
+                            snippet = destination.location,
+                            icon = getBitmapDescriptor(context, R.drawable.ic_launcher_foreground),
+                            onClick = {
+                                selectedDestination = destination
+                                isInfoCardVisible = true
+                                true
+                            }
                         )
-                    )
-                }
+                    }
             }
 
-            // Destinations list
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(sampleDestinations) { destination ->
-                    DestinationCard(
-                        destination = destination,
-                        onClick = { navigateToDestinationDetails(destination.id) }
-                    )
-                }
+            if (isInfoCardVisible && selectedDestination != null) {
+                DestinationInfoCard(
+                    destination = selectedDestination!!,
+                    onClose = { isInfoCardVisible = false },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                )
             }
         }
     }
 }
 
 @Composable
-fun DestinationCard(
-    destination: Destination,
-    onClick: () -> Unit
+fun FilterButton(
+    icon: ImageVector,
+    label: String,
+    type: String,
+    isSelected: Boolean,
+    onToggle: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-            .clickable(onClick = onClick)
-            .shadow(
-                elevation = 8.dp,
-                shape = RoundedCornerShape(16.dp)
-            ),
-        shape = RoundedCornerShape(16.dp)
+        modifier = modifier
+            .height(36.dp)
+            .shadow(elevation = 4.dp, shape = RoundedCornerShape(18.dp))
+            .clickable { onToggle(type) },
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.White
+        )
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Placeholder for actual image
-            Image(
-                painter = painterResource(id = R.drawable.ic_launcher_background),
-                contentDescription = destination.name,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = if (isSelected) Color.White else MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp)
             )
-
-            // Gradient overlay
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.7f)
-                            ),
-                            startY = 0f,
-                            endY = 1000f
-                        )
-                    )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                label,
+                color = if (isSelected) Color.White else Color.Black,
+                style = MaterialTheme.typography.labelSmall
             )
-
-            // Destination information
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomStart)
-                    .padding(16.dp)
-            ) {
-                Text(
-                    destination.name,
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp)
-                ) {
-                    Icon(
-                        Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
-
-                    Text(
-                        destination.location,
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Star,
-                        contentDescription = null,
-                        tint = Color(0xFFFFD700),
-                        modifier = Modifier.size(16.dp)
-                    )
-
-                    Text(
-                        "${destination.rating} (${destination.reviewCount} reviews)",
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                }
-            }
-
-            // Favorite button
-            IconButton(
-                onClick = { /* TODO: Implement favorite */ },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .size(36.dp)
-                    .background(Color.White.copy(alpha = 0.8f), CircleShape)
-            ) {
-                Icon(
-                    if (destination.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = "Add to favorites",
-                    tint = if (destination.isFavorite) Color.Red else MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
         }
     }
 }
 
-// Sample data class and data
-data class Destination(
-    val id: String,
-    val name: String,
-    val location: String,
-    val rating: Double,
-    val reviewCount: Int,
-    val isFavorite: Boolean = false
-)
-
-val sampleDestinations = listOf(
-    Destination(
-        id = "dest1",
-        name = "Kuta Beach",
-        location = "Bali, Indonesia",
-        rating = 4.7,
-        reviewCount = 1234
-    ),
-    Destination(
-        id = "dest2",
-        name = "Ubud Rice Terraces",
-        location = "Bali, Indonesia",
-        rating = 4.9,
-        reviewCount = 876,
-        isFavorite = true
-    ),
-    Destination(
-        id = "dest3",
-        name = "Tanah Lot Temple",
-        location = "Bali, Indonesia",
-        rating = 4.8,
-        reviewCount = 2100
-    ),
-    Destination(
-        id = "dest4",
-        name = "Mount Batur",
-        location = "Bali, Indonesia",
-        rating = 4.6,
-        reviewCount = 567
-    )
-)
+@Composable
+fun DestinationInfoCard(
+    destination: MapDestination,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        elevation = CardDefaults.cardElevation(8.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = destination.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onClose) {
+                    Icon(Icons.Default.Close, contentDescription = "Close")
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Location: ${destination.location}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+}
