@@ -47,8 +47,15 @@ val menuItems = listOf(
     ),
     MenuItem(
         icon = Icons.Filled.PhotoCamera,
-        label = "Photos",
-        route = "photos",
+        label = "CameraScreen",
+        route = "camera",
         color = Color(0xFF9E9E9E)  // Gray
-    )
+    ) ,
+    MenuItem(
+        icon = Icons.Filled.Map,
+    label = "Maps",
+    route = "maps",
+    color = Color(0xFF9E9E9E)  // Gray
+)
+
 )

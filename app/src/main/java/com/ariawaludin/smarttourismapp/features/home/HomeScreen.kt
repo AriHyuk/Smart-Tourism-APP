@@ -131,6 +131,7 @@ fun HomeScreen(
                                 1 -> onMenuClick("maps")
                                 2 -> onMenuClick("explore")
                                 3 -> navController.navigate("profile")
+                                4 -> onMenuClick("camera")
                             }
                         }
                     )
