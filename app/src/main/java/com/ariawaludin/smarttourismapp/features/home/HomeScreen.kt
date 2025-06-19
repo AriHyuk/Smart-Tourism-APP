@@ -1,5 +1,6 @@
 package com.ariawaludin.smarttourismapp.features.home
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -99,9 +100,9 @@ fun HomeScreen(
             ) {
                 val items = listOf(
                     Triple(Icons.Filled.Home, "Home", 0),
-                    Triple(Icons.Filled.LocationOn, "Explore", 1),
+                    Triple(Icons.Filled.LocationOn, "Maps", 1),
                     Triple(Icons.Filled.Favorite, "Favorites", 2),
-                    Triple(Icons.Filled.Person, "Profile", 3)
+                    Triple(Icons.Filled.Person, "Profile", 3),
                 )
 
                 items.forEachIndexed { index, (icon, label, tabIndex) ->
@@ -128,10 +129,13 @@ fun HomeScreen(
                         selected = selectedTabIndex == tabIndex,
                         onClick = {
                             when (tabIndex) {
-                                1 -> onMenuClick("maps")
-                                2 -> onMenuClick("explore")
+                                0 -> onMenuClick("home")
+                                1 -> navController.navigate("maps")
+                                Log.d("NavTest", "Go to Maps"),
+                                2 -> onMenuClick("favorite")
                                 3 -> navController.navigate("profile")
                                 4 -> onMenuClick("camera")
+                                5 -> onMenuClick("explore")
                             }
                         }
                     )
