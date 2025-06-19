@@ -35,7 +35,7 @@ fun SplashScreen(navController: NavController) {
     LaunchedEffect(true) {
         delay(2000)
 
-        val isLoggedIn = sharedPrefHelper.getBoolean("isLoggedIn", false)
+        val isLoggedIn = sharedPrefHelper.getBoolean("isLoggedIn", true)
 
         if (isLoggedIn) {
             navController.navigate("home") {

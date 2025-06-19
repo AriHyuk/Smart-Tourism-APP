@@ -40,11 +40,12 @@ fun NavGraph(navController: NavHostController) {
 
                 onMenuClick = { route ->
                     when (route) {
-                        "explore" -> navController.navigate("explore")
-                        "camera" -> navController.navigate("camera")
+                        "home" -> navController.navigate("home")
                         "maps" -> navController.navigate("maps")
+                        "camera" -> navController.navigate("camera")
                         "profile" -> navController.navigate("profile")
                         "settings" -> navController.navigate("settings")
+                        "explore" -> navController.navigate("explore")
                     }
                 },
                 onNavigateToSettings = {
