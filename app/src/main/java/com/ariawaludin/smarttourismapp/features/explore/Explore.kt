@@ -1,10 +1,6 @@
 package com.ariawaludin.smarttourismapp.features.explore
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,45 +15,28 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
-import androidx.core.graphics.createBitmap
 import androidx.navigation.NavController
-import com.ariawaludin.smarttourismapp.R
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 import com.ariawaludin.smarttourismapp.model.MapDestination
-import com.google.android.gms.maps.model.BitmapDescriptor
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.*
-
-fun getBitmapDescriptor(context: Context, @DrawableRes resId: Int): BitmapDescriptor {
-    val drawable: Drawable = ContextCompat.getDrawable(context, resId)!!
-    if (drawable is BitmapDrawable) {
-        return BitmapDescriptorFactory.fromBitmap(drawable.bitmap)
-    }
-    val bitmap = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
-    val canvas = Canvas(bitmap)
-    drawable.setBounds(0, 0, canvas.width, canvas.height)
-    drawable.draw(canvas)
-    return BitmapDescriptorFactory.fromBitmap(bitmap)
-}
 
 @Composable
 fun ExploreScreen(navController: NavController) {
     val context = LocalContext.current
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(LatLng(-6.1754, 106.8272), 10f)
-    }
 
+    // Data destinasi
     val mapDestinations = remember {
         listOf(
-            MapDestination("Hotel Indonesia", "Jakarta", LatLng(-6.1939, 106.8208), "hotel"),
-            MapDestination("Plaza Indonesia", "Jakarta", LatLng(-6.1936, 106.8205), "restaurant"),
-            MapDestination("Monas", "Jakarta", LatLng(-6.1754, 106.8272), "attraction"),
-            MapDestination("Ancol", "Jakarta", LatLng(-6.1256, 106.8364), "activity"),
-            MapDestination("Dufan", "Jakarta", LatLng(-6.1259, 106.8365), "activity"),
-            MapDestination("Sate Senayan", "Jakarta", LatLng(-6.2246, 106.8025), "restaurant"),
-            MapDestination("Hotel Mulia", "Jakarta", LatLng(-6.2185, 106.8017), "hotel"),
+            MapDestination("Hotel Indonesia", "Jakarta", GeoPoint(-6.1939, 106.8208), "hotel"),
+            MapDestination("Plaza Indonesia", "Jakarta", GeoPoint(-6.1936, 106.8205), "restaurant"),
+            MapDestination("Monas", "Jakarta", GeoPoint(-6.1754, 106.8272), "attraction"),
+            MapDestination("Ancol", "Jakarta", GeoPoint(-6.1256, 106.8364), "activity"),
+            MapDestination("Dufan", "Jakarta", GeoPoint(-6.1259, 106.8365), "activity"),
+            MapDestination("Sate Senayan", "Jakarta", GeoPoint(-6.2246, 106.8025), "restaurant"),
+            MapDestination("Hotel Mulia", "Jakarta", GeoPoint(-6.2185, 106.8017), "hotel"),
         )
     }
 
@@ -71,6 +50,12 @@ fun ExploreScreen(navController: NavController) {
         } else {
             activeFilters + type
         }
+    }
+
+    // Setup osmdroid config (WAJIB)
+    DisposableEffect(context) {
+        Configuration.getInstance().load(context, context.getSharedPreferences("osm_prefs", Context.MODE_PRIVATE))
+        onDispose { }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -87,26 +72,56 @@ fun ExploreScreen(navController: NavController) {
         }
 
         Box(modifier = Modifier.fillMaxSize()) {
-            GoogleMap(
-                modifier = Modifier.fillMaxSize(),
-                cameraPositionState = cameraPositionState
-            ) {
-                mapDestinations
-                    .filter { activeFilters.isEmpty() || activeFilters.contains(it.type) }
-                    .forEach { destination ->
-                        Marker(
-                            state = MarkerState(position = destination.position),
-                            title = destination.name,
-                            snippet = destination.location,
-                            icon = getBitmapDescriptor(context, R.drawable.ic_launcher_foreground),
-                            onClick = {
-                                selectedDestination = destination
+            // osmdroid MapView via AndroidView
+            androidx.compose.ui.viewinterop.AndroidView(
+                factory = { ctx ->
+                    MapView(ctx).apply {
+                        setTileSource(TileSourceFactory.MAPNIK)
+                        controller.setZoom(12.0)
+                        controller.setCenter(GeoPoint(-6.1754, 106.8272)) // Monas
+
+                        // Hapus marker sebelumnya
+                        overlays.clear()
+
+                        // Tambah marker sesuai filter
+                        mapDestinations
+                            .filter { activeFilters.isEmpty() || activeFilters.contains(it.type) }
+                            .forEach { dest ->
+                                val marker = Marker(this)
+                                marker.position = dest.position
+                                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                marker.title = dest.name
+                                marker.subDescription = dest.location
+                                marker.setOnMarkerClickListener { m, _ ->
+                                    selectedDestination = dest
+                                    isInfoCardVisible = true
+                                    true
+                                }
+                                overlays.add(marker)
+                            }
+                    }
+                },
+                update = { mapView ->
+                    // update marker kalau filter berubah
+                    mapView.overlays.clear()
+                    mapDestinations
+                        .filter { activeFilters.isEmpty() || activeFilters.contains(it.type) }
+                        .forEach { dest ->
+                            val marker = Marker(mapView)
+                            marker.position = dest.position
+                            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            marker.title = dest.name
+                            marker.subDescription = dest.location
+                            marker.setOnMarkerClickListener { m, _ ->
+                                selectedDestination = dest
                                 isInfoCardVisible = true
                                 true
                             }
-                        )
-                    }
-            }
+                            mapView.overlays.add(marker)
+                        }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
 
             if (isInfoCardVisible && selectedDestination != null) {
                 DestinationInfoCard(
@@ -121,6 +136,7 @@ fun ExploreScreen(navController: NavController) {
     }
 }
 
+// FilterButton & DestinationInfoCard sama seperti kode kamu sebelumnya
 @Composable
 fun FilterButton(
     icon: ImageVector,

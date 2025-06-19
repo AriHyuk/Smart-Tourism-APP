@@ -100,7 +100,7 @@ fun HomeScreen(
             ) {
                 val items = listOf(
                     Triple(Icons.Filled.Home, "Home", 0),
-                    Triple(Icons.Filled.LocationOn, "Maps", 1),
+                    Triple(Icons.Filled.Map, "Maps", 1),
                     Triple(Icons.Filled.Favorite, "Favorites", 2),
                     Triple(Icons.Filled.Person, "Profile", 3),
                 )
@@ -131,7 +131,6 @@ fun HomeScreen(
                             when (tabIndex) {
                                 0 -> onMenuClick("home")
                                 1 -> navController.navigate("maps")
-                                Log.d("NavTest", "Go to Maps"),
                                 2 -> onMenuClick("favorite")
                                 3 -> navController.navigate("profile")
                                 4 -> onMenuClick("camera")

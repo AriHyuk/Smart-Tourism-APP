@@ -1,5 +1,7 @@
 package com.ariawaludin.smarttourismapp.features.maps
 
+import android.content.Context
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -8,63 +10,44 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.ariawaludin.smarttourismapp.R
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.*
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.shadow
 import com.ariawaludin.smarttourismapp.model.MapDestination
-import android.content.Context
-import androidx.annotation.DrawableRes
-import com.google.android.gms.maps.model.BitmapDescriptor
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
-import androidx.core.content.ContextCompat
 import androidx.compose.foundation.clickable
-import androidx.core.graphics.createBitmap
 
-fun getBitmapDescriptor(context: Context, @DrawableRes resId: Int): BitmapDescriptor {
-    val drawable: Drawable = ContextCompat.getDrawable(context, resId)!!
-    if (drawable is BitmapDrawable) {
-        return BitmapDescriptorFactory.fromBitmap(drawable.bitmap)
-    }
-    val bitmap = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
-    val canvas = Canvas(bitmap)
-    drawable.setBounds(0, 0, canvas.width, canvas.height)
-    drawable.draw(canvas)
-    return BitmapDescriptorFactory.fromBitmap(bitmap)
-}
+import androidx.compose.ui.graphics.Color
+
+
 
 @Composable
 fun MapsScreen(navController: NavController) {
     val context = LocalContext.current
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(LatLng(-6.1754, 106.8272), 10f)
-    }
 
+    // Data destinasi, ganti sesuai kebutuhan
     val mapDestinations = remember {
         listOf(
-            MapDestination("Hotel Indonesia", "Jakarta", LatLng(-6.1939, 106.8208), "hotel"),
-            MapDestination("Plaza Indonesia", "Jakarta", LatLng(-6.1936, 106.8205), "restaurant"),
-            MapDestination("Monas", "Jakarta", LatLng(-6.1754, 106.8272), "attraction"),
-            MapDestination("Ancol", "Jakarta", LatLng(-6.1256, 106.8364), "activity"),
-            MapDestination("Dufan", "Jakarta", LatLng(-6.1259, 106.8365), "activity"),
-            MapDestination("Sate Senayan", "Jakarta", LatLng(-6.2246, 106.8025), "restaurant"),
-            MapDestination("Hotel Mulia", "Jakarta", LatLng(-6.2185, 106.8017), "hotel"),
+            MapDestination("Hotel Indonesia", "Jakarta", GeoPoint(-6.1939, 106.8208), "hotel"),
+            MapDestination("Plaza Indonesia", "Jakarta", GeoPoint(-6.1936, 106.8205), "restaurant"),
+            MapDestination("Monas", "Jakarta", GeoPoint(-6.1754, 106.8272), "attraction"),
+            MapDestination("Ancol", "Jakarta", GeoPoint(-6.1256, 106.8364), "activity"),
+            MapDestination("Dufan", "Jakarta", GeoPoint(-6.1259, 106.8365), "activity"),
+            MapDestination("Sate Senayan", "Jakarta", GeoPoint(-6.2246, 106.8025), "restaurant"),
+            MapDestination("Hotel Mulia", "Jakarta", GeoPoint(-6.2185, 106.8017), "hotel"),
         )
     }
 
     var selectedDestination by remember { mutableStateOf<MapDestination?>(null) }
     var isInfoCardVisible by remember { mutableStateOf(false) }
 
+    // FILTER BUTTONS (optional, mirip punyamu sebelumnya)
     var activeFilters by remember { mutableStateOf(setOf<String>()) }
     fun toggleFilter(type: String) {
         activeFilters = if (activeFilters.contains(type)) {
@@ -74,8 +57,14 @@ fun MapsScreen(navController: NavController) {
         }
     }
 
+    // Setup osmdroid config (Wajib, kalau tidak tile blank!)
+    DisposableEffect(context) {
+        Configuration.getInstance().load(context, context.getSharedPreferences("osm_prefs", Context.MODE_PRIVATE))
+        onDispose { }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
-        // Filter Buttons
+        // Filter Buttons (optional, sama seperti punyamu sebelumnya)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -88,28 +77,59 @@ fun MapsScreen(navController: NavController) {
             FilterButton(Icons.Default.SportsSoccer, "Activities", "activity", activeFilters.contains("activity"), ::toggleFilter, Modifier.weight(1f))
         }
 
+        // Main OSM MapView
         Box(modifier = Modifier.fillMaxSize()) {
-            GoogleMap(
-                modifier = Modifier.fillMaxSize(),
-                cameraPositionState = cameraPositionState
-            ) {
-                mapDestinations
-                    .filter { activeFilters.isEmpty() || activeFilters.contains(it.type) }
-                    .forEach { destination ->
-                        Marker(
-                            state = MarkerState(position = destination.position),
-                            title = destination.name,
-                            snippet = destination.location,
-                            icon = getBitmapDescriptor(context, R.drawable.ic_launcher_foreground),
-                            onClick = {
-                                selectedDestination = destination
+            AndroidView(
+                factory = { ctx ->
+                    MapView(ctx).apply {
+                        setTileSource(TileSourceFactory.MAPNIK)
+                        controller.setZoom(12.0)
+                        controller.setCenter(GeoPoint(-6.1754, 106.8272)) // Monas
+
+                        // Hapus marker sebelumnya (biar gak dobel waktu recomposition)
+                        overlays.clear()
+
+                        // Tambah marker sesuai filter
+                        mapDestinations
+                            .filter { activeFilters.isEmpty() || activeFilters.contains(it.type) }
+                            .forEach { dest ->
+                                val marker = Marker(this)
+                                marker.position = dest.position
+                                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                marker.title = dest.name
+                                marker.subDescription = dest.location
+                                marker.setOnMarkerClickListener { m, _ ->
+                                    selectedDestination = dest
+                                    isInfoCardVisible = true
+                                    true
+                                }
+                                overlays.add(marker)
+                            }
+                    }
+                },
+                update = { mapView ->
+                    // (Opsional) update marker kalau filter berubah
+                    mapView.overlays.clear()
+                    mapDestinations
+                        .filter { activeFilters.isEmpty() || activeFilters.contains(it.type) }
+                        .forEach { dest ->
+                            val marker = Marker(mapView)
+                            marker.position = dest.position
+                            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            marker.title = dest.name
+                            marker.subDescription = dest.location
+                            marker.setOnMarkerClickListener { m, _ ->
+                                selectedDestination = dest
                                 isInfoCardVisible = true
                                 true
                             }
-                        )
-                    }
-            }
+                            mapView.overlays.add(marker)
+                        }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
 
+            // Info Card, muncul di bawah jika marker diklik
             if (isInfoCardVisible && selectedDestination != null) {
                 DestinationInfoCard(
                     destination = selectedDestination!!,
@@ -164,6 +184,7 @@ fun FilterButton(
         }
     }
 }
+
 @Composable
 fun DestinationInfoCard(
     destination: MapDestination,
@@ -194,5 +215,3 @@ fun DestinationInfoCard(
         }
     }
 }
-
-
