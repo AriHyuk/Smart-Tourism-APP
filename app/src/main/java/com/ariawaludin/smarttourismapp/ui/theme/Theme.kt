@@ -5,7 +5,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// Warna untuk Light Theme
 private val LightColors = lightColorScheme(
     primary = Color(0xFF6200EE),
     onPrimary = Color.White,
@@ -17,7 +16,6 @@ private val LightColors = lightColorScheme(
     onSurface = Color(0xFF000000),
 )
 
-// Warna untuk Dark Theme (opsional, bisa kamu ubah nanti)
 private val DarkColors = darkColorScheme(
     primary = Color(0xFFBB86FC),
     onPrimary = Color.Black,

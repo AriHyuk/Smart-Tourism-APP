@@ -1,5 +1,7 @@
 package com.ariawaludin.smarttourismapp.navigation
 
+import EditProfileScreen
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -8,6 +10,7 @@ import com.ariawaludin.smarttourismapp.features.auth.LoginScreen
 import com.ariawaludin.smarttourismapp.features.auth.RegisterScreen
 import com.ariawaludin.smarttourismapp.features.camera.CameraScreen
 import com.ariawaludin.smarttourismapp.features.explore.ExploreScreen
+import com.ariawaludin.smarttourismapp.features.home.AllMenuScreen
 import com.ariawaludin.smarttourismapp.features.home.HomeScreen
 import com.ariawaludin.smarttourismapp.features.listwisata.ListWisataScreen
 import com.ariawaludin.smarttourismapp.features.maps.MapsScreen
@@ -15,11 +18,17 @@ import com.ariawaludin.smarttourismapp.features.profile.ProfileScreen
 import com.ariawaludin.smarttourismapp.features.setting.SettingsScreen
 import com.ariawaludin.smarttourismapp.features.splash.SplashScreen
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NavGraph(navController: NavHostController) {
+fun NavGraph(
+    navController: NavHostController,
+    onThemeChanged: (Boolean) -> Unit
+) {
+
     NavHost(
         navController = navController,
         startDestination = "SplashScreen"
+
     ) {
 
         composable("SplashScreen") {
@@ -69,9 +78,8 @@ fun NavGraph(navController: NavHostController) {
         composable("settings") {
             SettingsScreen(
                 onBackClick = { navController.popBackStack() },
-                onNavigateToEditProfile = {
-                    navController.navigate("edit_profile")
-                }
+                onNavigateToEditProfile = { navController.navigate("edit_profile") },
+                onThemeChanged = onThemeChanged
             )
         }
 
@@ -94,6 +102,17 @@ fun NavGraph(navController: NavHostController) {
         composable("listwisata") {
             ListWisataScreen(navController = navController)
         }
+        composable("edit_profile") {
+             EditProfileScreen(
+                onBack = { navController.popBackStack() },
+                onSave = { navController.popBackStack() }
+            )
+        }
+        composable("allmenu") {
+            AllMenuScreen(navController = navController)
+        }
+
+
 
         // Tambahkan lainnya sesuai fitur
     }
