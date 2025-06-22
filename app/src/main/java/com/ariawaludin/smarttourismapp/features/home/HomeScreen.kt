@@ -34,8 +34,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.ariawaludin.smarttourismapp.R
 
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -44,6 +42,12 @@ fun HomeScreen(
     onMenuClick: (String) -> Unit
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
+
+    // List data untuk autocomplete
+    val tempatWisata = listOf(
+        "Monas", "Dufan", "Ancol", "Kota Tua", "Taman Mini", "Ragunan",
+        "Tebing Keraton", "Kawah Putih", "Pantai Kuta", "Candi Borobudur"
+    )
 
     Scaffold(
         topBar = {
@@ -171,41 +175,16 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Search Bar with Card elevation
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(
-                            elevation = 4.dp,
-                            shape = RoundedCornerShape(16.dp)
-                        ),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = null,
-                            modifier = Modifier.padding(8.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-
-                        Text(
-                            "Search for destinations...",
-                            color = Color.Gray,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp)
-                        )
+                // ======== AUTOCOMPLETE SEARCH BAR BARU ========
+                AutocompleteSearchBar(
+                    options = tempatWisata,
+                    onSelect = { selected ->
+                        // Contoh: nanti bisa navigate ke detail/list/filter
+                        // navController.navigate("detail/$selected")
+                        // Sementara tampilkan toast/log:
+                        Log.d("HomeScreen", "User memilih: $selected")
                     }
-                }
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -223,7 +202,7 @@ fun HomeScreen(
                     Box(modifier = Modifier.fillMaxSize()) {
                         // Image with overlay gradient
                         Image(
-                            painter = painterResource(id = R.drawable.ic_launcher_background), // Replace with actual image
+                            painter = painterResource(id = R.drawable.ic_launcher_background), // Ganti ke image yang sesuai
                             contentDescription = "Featured Destination",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
@@ -319,12 +298,13 @@ fun HomeScreen(
                         color = Color.DarkGray
                     )
 
-                    TextButton(onClick = { /* TODO: View all services */ }) {
+                    TextButton(onClick = { navController.navigate("allmenu") }) {
                         Text(
                             "View All",
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
+
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -372,6 +352,53 @@ fun HomeScreen(
                                 )
                             }
                         }
+                    }
+                )
+            }
+        }
+    }
+}
+
+// ================= AUTOCOMPLETE SEARCH BAR COMPOSABLE ===================
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AutocompleteSearchBar(
+    options: List<String>,
+    onSelect: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var text by remember { mutableStateOf("") }
+    val filteredOptions = options.filter {
+        it.contains(text, ignoreCase = true) && text.isNotEmpty()
+    }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded && filteredOptions.isNotEmpty(),
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = {
+                text = it
+                expanded = true
+            },
+            label = { Text("Search for destinations...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded && filteredOptions.isNotEmpty(),
+            onDismissRequest = { expanded = false }
+        ) {
+            filteredOptions.forEach { selectionOption ->
+                DropdownMenuItem(
+                    text = { Text(selectionOption) },
+                    onClick = {
+                        text = selectionOption
+                        expanded = false
+                        onSelect(selectionOption)
                     }
                 )
             }

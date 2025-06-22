@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,21 +21,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ariawaludin.smarttourismapp.features.profile.ProfileScreen
+import com.ariawaludin.smarttourismapp.utils.SharedPrefHelper
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onBackClick: () -> Unit,
     onNavigateToEditProfile: () -> Unit,
+    onThemeChanged: (Boolean) -> Unit
 ) {
+    val context = LocalContext.current
+    val pref = remember { SharedPrefHelper(context) }
     val scrollState = rememberScrollState()
 
-    // Theme settings
-    var isDarkMode by remember { mutableStateOf(false) }
-    var notificationsEnabled by remember { mutableStateOf(true) }
-    var locationEnabled by remember { mutableStateOf(true) }
-    var language by remember { mutableStateOf("English") }
-    var currency by remember { mutableStateOf("USD") }
+    // Ambil data dari preferences
+    var isDarkMode by remember { mutableStateOf(pref.getBoolean("dark_mode", false)) }
+    var notificationsEnabled by remember { mutableStateOf(pref.getBoolean("notif", true)) }
+    var locationEnabled by remember { mutableStateOf(pref.getBoolean("location", true)) }
+    var showClearDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -71,7 +74,10 @@ fun SettingsScreen(
                 title = "Dark Mode",
                 subtitle = "Switch between light and dark theme",
                 isChecked = isDarkMode,
-                onCheckChange = { isDarkMode = it }
+                onCheckChange = {
+                    isDarkMode = it
+                    pref.setBoolean("dark_mode", it)
+                }
             )
 
             // Notifications Setting
@@ -80,7 +86,10 @@ fun SettingsScreen(
                 title = "Notifications",
                 subtitle = "Receive travel updates and offers",
                 isChecked = notificationsEnabled,
-                onCheckChange = { notificationsEnabled = it }
+                onCheckChange = {
+                    notificationsEnabled = it
+                    pref.setBoolean("notif", it)
+                }
             )
 
             // Location Setting
@@ -89,45 +98,26 @@ fun SettingsScreen(
                 title = "Location Services",
                 subtitle = "Enable location for better recommendations",
                 isChecked = locationEnabled,
-                onCheckChange = { locationEnabled = it }
-            )
-
-            // Language Setting
-            SettingsSelectionItem(
-                icon = Icons.Default.Language,
-                title = "Language",
-                value = language,
-                onClick = { /* TODO: Show language selection dialog */ }
-            )
-
-            // Currency Setting
-            SettingsSelectionItem(
-                icon = Icons.Default.AttachMoney,
-                title = "Currency",
-                value = currency,
-                onClick = { /* TODO: Show currency selection dialog */ }
+                onCheckChange = {
+                    locationEnabled = it
+                    pref.setBoolean("location", it)
+                }
             )
 
             // Account Section
             SettingsSectionTitle("Account")
-
-            // Edit Profile
             SettingsNavigationItem(
                 icon = Icons.Default.Person,
                 title = "Edit Profile",
                 subtitle = "Change your personal information",
                 onClick = { onNavigateToEditProfile() }
             )
-
-            // Password Reset
             SettingsNavigationItem(
                 icon = Icons.Default.Lock,
                 title = "Change Password",
                 subtitle = "Update your password",
                 onClick = { /* TODO: Navigate to password change */ }
             )
-
-            // Linked Accounts
             SettingsNavigationItem(
                 icon = Icons.Default.Link,
                 title = "Linked Accounts",
@@ -137,16 +127,12 @@ fun SettingsScreen(
 
             // Privacy & Security Section
             SettingsSectionTitle("Privacy & Security")
-
-            // Privacy Policy
             SettingsNavigationItem(
                 icon = Icons.Default.Security,
                 title = "Privacy Policy",
                 subtitle = "Learn how we protect your data",
                 onClick = { /* TODO: Navigate to privacy policy */ }
             )
-
-            // Terms of Service
             SettingsNavigationItem(
                 icon = Icons.Default.Description,
                 title = "Terms of Service",
@@ -156,16 +142,12 @@ fun SettingsScreen(
 
             // Support Section
             SettingsSectionTitle("Support")
-
-            // Help Center
             SettingsNavigationItem(
                 icon = Icons.Default.Help,
                 title = "Help Center",
                 subtitle = "Get assistance with the app",
                 onClick = { /* TODO: Navigate to help center */ }
             )
-
-            // Report a Problem
             SettingsNavigationItem(
                 icon = Icons.Default.ReportProblem,
                 title = "Report a Problem",
@@ -175,8 +157,6 @@ fun SettingsScreen(
 
             // App Information
             SettingsSectionTitle("About")
-
-            // App Version
             SettingsInfoItem(
                 icon = Icons.Default.Info,
                 title = "App Version",
@@ -190,13 +170,28 @@ fun SettingsScreen(
                 subtitle = "Clear all cached data",
                 buttonText = "Clear",
                 buttonColor = Color.Red,
-                onClick = { /* TODO: Show clear data confirmation dialog */ }
+                onClick = { showClearDialog = true }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
+
+    if (showClearDialog) {
+        ClearDataConfirmationDialog(
+            visible = true,
+            onDismiss = { showClearDialog = false },
+            onConfirm = {
+                pref.clearAll()
+                // Reset state toggle juga
+                isDarkMode = false
+                notificationsEnabled = true
+                locationEnabled = true
+            }
+        )
+    }
 }
+
 
 @Composable
 fun SettingsSectionTitle(title: String) {
@@ -564,92 +559,6 @@ fun SettingsActionItem(
                 )
             }
         }
-    }
-}
-
-// Optional: Add these additional dialog components for completing the interaction
-
-@Composable
-fun LanguageSelectionDialog(
-    visible: Boolean,
-    currentLanguage: String,
-    onDismiss: () -> Unit,
-    onLanguageSelected: (String) -> Unit
-) {
-    if (visible) {
-        val languages = listOf("English", "Spanish", "French", "German", "Chinese", "Japanese")
-
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text("Select Language") },
-            text = {
-                Column {
-                    languages.forEach { language ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onLanguageSelected(language) }
-                                .padding(vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = language == currentLanguage,
-                                onClick = { onLanguageSelected(language) }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(language)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-}
-
-@Composable
-fun CurrencySelectionDialog(
-    visible: Boolean,
-    currentCurrency: String,
-    onDismiss: () -> Unit,
-    onCurrencySelected: (String) -> Unit
-) {
-    if (visible) {
-        val currencies = listOf("USD", "EUR", "GBP", "JPY", "AUD", "CAD", "CNY")
-
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text("Select Currency") },
-            text = {
-                Column {
-                    currencies.forEach { currency ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onCurrencySelected(currency) }
-                                .padding(vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = currency == currentCurrency,
-                                onClick = { onCurrencySelected(currency) }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(currency)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancel")
-                }
-            }
-        )
     }
 }
 
