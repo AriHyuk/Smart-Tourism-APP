@@ -50,6 +50,12 @@ val menuItems = listOf(
         label = "CameraScreen",
         route = "camera",
         color = Color(0xFF9E9E9E)  // Gray
-    )
+    ) ,
+    MenuItem(icon = Icons.Filled.Sync,
+    label = "AsyncTask/Thread",
+    route = "thread_async",
+    color = Color(0xFF00BCD4)
+)
+
 
 )
