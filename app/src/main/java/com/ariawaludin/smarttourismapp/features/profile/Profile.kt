@@ -24,6 +24,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ariawaludin.smarttourismapp.R
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.viewinterop.AndroidView
+import com.github.mikephil.charting.charts.BarChart
+import com.github.mikephil.charting.data.BarData
+import com.github.mikephil.charting.data.BarDataSet
+import com.github.mikephil.charting.data.BarEntry
+import com.github.mikephil.charting.utils.ColorTemplate
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,6 +84,25 @@ fun ProfileScreen(
             item {
                 ProfileStats()
             }
+            item {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Trip per Month",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+                TripBarChart(
+                    tripData = listOf(
+                        "Jan" to 2,
+                        "Feb" to 5,
+                        "Mar" to 1,
+                        "Apr" to 4
+                    ),
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+
 
             // Section: My Account
             item {
@@ -433,4 +461,31 @@ fun ProfileMenuItem(
             )
         }
     }
+}
+
+@Composable
+fun TripBarChart(
+    tripData: List<Pair<String, Int>>, // ex: [("Jan", 2), ("Feb", 5), ...]
+    modifier: Modifier = Modifier
+) {
+    AndroidView(
+        modifier = modifier.height(200.dp).fillMaxWidth(),
+        factory = { context ->
+            BarChart(context).apply {
+                description.isEnabled = false
+                legend.isEnabled = false
+            }
+        },
+        update = { chart ->
+            val entries = tripData.mapIndexed { idx, pair ->
+                BarEntry(idx.toFloat(), pair.second.toFloat())
+            }
+            val dataSet = BarDataSet(entries, "Trip per Month").apply {
+                setColors(*ColorTemplate.COLORFUL_COLORS)
+            }
+            chart.data = BarData(dataSet)
+            chart.xAxis.valueFormatter = IndexAxisValueFormatter(tripData.map { it.first })
+            chart.invalidate()
+        }
+    )
 }

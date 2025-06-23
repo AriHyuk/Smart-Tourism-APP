@@ -105,4 +105,6 @@ dependencies {
     implementation ("org.osmdroid:osmdroid-wms:6.1.16")
     implementation ("org.osmdroid:osmdroid-mapsforge:6.1.16")
 
+    implementation ("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
 }
