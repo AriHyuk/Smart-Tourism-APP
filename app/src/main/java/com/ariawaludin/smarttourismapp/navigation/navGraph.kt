@@ -17,7 +17,7 @@ import com.ariawaludin.smarttourismapp.features.maps.MapsScreen
 import com.ariawaludin.smarttourismapp.features.profile.ProfileScreen
 import com.ariawaludin.smarttourismapp.features.setting.SettingsScreen
 import com.ariawaludin.smarttourismapp.features.splash.SplashScreen
-import com.ariawaludin.smarttourismapp.features.threadasync.ThreadDanAsyncScreen
+import com.ariawaludin.smarttourismapp.features.thread.ThreadDanAsyncScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
