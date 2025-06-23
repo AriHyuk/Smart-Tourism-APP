@@ -6,18 +6,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
@@ -34,25 +29,30 @@ import androidx.navigation.NavController
 import com.ariawaludin.smarttourismapp.data.AppDatabase
 import com.ariawaludin.smarttourismapp.data.User
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(navController: NavController) {
     val context = LocalContext.current
     val db = AppDatabase.getInstance(context)
     val userDao = db.userDao()
 
+    var firstName by remember { mutableStateOf("") }
+    var lastName by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+    var phone by remember { mutableStateOf("") }
 
-    // Define gradient colors for background and buttons
-    val primaryGradient = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-        )
-    )
+    // OTP dialog state
+    var showOtpDialog by remember { mutableStateOf(false) }
+    var otpCode by remember { mutableStateOf("") }
+    var inputOtp by remember { mutableStateOf("") }
+    var otpError by remember { mutableStateOf("") }
+
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -66,29 +66,23 @@ fun RegisterScreen(navController: NavController) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // App Name with styled text
+            // Title
             Text(
                 text = buildAnnotatedString {
                     withStyle(style = SpanStyle(
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
                         fontSize = 34.sp
-                    )) {
-                        append("Smart")
-                    }
+                    )) { append("Smart") }
                     withStyle(style = SpanStyle(
                         color = Color.DarkGray,
                         fontWeight = FontWeight.Medium,
                         fontSize = 34.sp
-                    )) {
-                        append("Tourism")
-                    }
+                    )) { append("Tourism") }
                 },
                 textAlign = TextAlign.Center
             )
-
             Spacer(modifier = Modifier.height(8.dp))
-
             Text(
                 text = "Create Your Account",
                 style = MaterialTheme.typography.headlineSmall.copy(
@@ -96,26 +90,19 @@ fun RegisterScreen(navController: NavController) {
                 ),
                 color = Color.DarkGray
             )
-
             Text(
                 text = "Start your premium tourism experience",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Gray
             )
+            Spacer(modifier = Modifier.height(32.dp))
 
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // Card containing all form fields
+            // Form Card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(
-                        elevation = 8.dp,
-                        shape = RoundedCornerShape(16.dp)
-                    ),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                ),
+                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
@@ -124,113 +111,109 @@ fun RegisterScreen(navController: NavController) {
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Username field with icon
+                    // First Name
+                    OutlinedTextField(
+                        value = firstName,
+                        onValueChange = { firstName = it },
+                        label = { Text("First Name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    // Last Name
+                    OutlinedTextField(
+                        value = lastName,
+                        onValueChange = { lastName = it },
+                        label = { Text("Last Name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    // Email
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Email") },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    // Username
                     OutlinedTextField(
                         value = username,
                         onValueChange = { username = it },
                         label = { Text("Username") },
-                        placeholder = { Text("Enter your username") },
-                        singleLine = true,
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Username",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp)),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Color.LightGray,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary
-                        )
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                        singleLine = true
                     )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Password field with icon and visibility toggle
+                    Spacer(modifier = Modifier.height(12.dp))
+                    // Password
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
                         label = { Text("Password") },
-                        placeholder = { Text("Enter your password") },
+                        modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = "Password",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        },
+                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                         trailingIcon = {
-                            val image = if (passwordVisible)
-                                Icons.Filled.VisibilityOff
-                            else Icons.Filled.Visibility
-
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
-                                    imageVector = image,
-                                    contentDescription = "Toggle password visibility",
-                                    tint = MaterialTheme.colorScheme.primary
+                                    imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = "Toggle password visibility"
                                 )
                             }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp)),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Color.LightGray,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary
-                        )
+                        }
                     )
-
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    // Phone Number
+                    OutlinedTextField(
+                        value = phone,
+                        onValueChange = { phone = it },
+                        label = { Text("Phone Number") },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
+                        singleLine = true
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Gradient button
+            // Button Register
             Button(
                 onClick = {
-                    if (username.isNotBlank() && password.isNotBlank()) {
-                        val newUser = User(username = username, password = password)
-
-                        scope.launch {
-                            userDao.insertUser(newUser)
-                            Toast.makeText(context, "Account created successfully, $username!", Toast.LENGTH_SHORT).show()
-                            navController.navigate("login")
-                        }
-                    } else {
-                        Toast.makeText(context, "All fields are required!", Toast.LENGTH_SHORT).show()
+                    if (firstName.isBlank() || lastName.isBlank() || email.isBlank() ||
+                        username.isBlank() || password.isBlank() || phone.isBlank()) {
+                        Toast.makeText(context, "Please fill all fields!", Toast.LENGTH_SHORT).show()
+                        return@Button
                     }
+                    // Generate kode OTP random 6 digit
+                    otpCode = (100000..999999).random().toString()
+                    showOtpDialog = true
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
                     .clip(RoundedCornerShape(28.dp))
                     .shadow(elevation = 4.dp, shape = RoundedCornerShape(28.dp)),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Text(
                     "CREATE ACCOUNT",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    )
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Login option
             TextButton(onClick = {
                 navController.navigate("login")
             }) {
@@ -242,5 +225,54 @@ fun RegisterScreen(navController: NavController) {
             }
         }
     }
-}
 
+    // OTP Dialog
+// Tambahkan parameter autofillOnOpen
+    if (showOtpDialog) {
+        // Auto-fill OTP saat dialog pertama kali muncul
+        LaunchedEffect(showOtpDialog) {
+            inputOtp = otpCode  // << autofill kode OTP!
+        }
+
+        AlertDialog(
+            onDismissRequest = { showOtpDialog = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (inputOtp == otpCode) {
+                            scope.launch {
+                                val user = User(
+                                    username = username,
+                                    password = password,
+                                    // extend model jika mau
+                                )
+                                userDao.insertUser(user)
+                                Toast.makeText(context, "Register success!", Toast.LENGTH_SHORT).show()
+                                showOtpDialog = false
+                                navController.navigate("login")
+                            }
+                        } else {
+                            otpError = "Kode OTP salah!"
+                        }
+                    }
+                ) { Text("Verifikasi") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showOtpDialog = false }) { Text("Batal") }
+            },
+            title = { Text("Verifikasi OTP") },
+            text = {
+                Column {
+                    Text("Kode OTP (simulasi SMS): $otpCode")
+                    OutlinedTextField(
+                        value = inputOtp,
+                        onValueChange = { inputOtp = it },
+                        label = { Text("Masukkan OTP") }
+                    )
+                    if (otpError.isNotEmpty()) Text(otpError, color = MaterialTheme.colorScheme.error)
+                }
+            }
+        )
+    }
+
+}
